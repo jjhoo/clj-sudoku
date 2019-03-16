@@ -73,13 +73,31 @@
 
 (defn str-to-grid
   [grid]
-  (println "foo:" grid (seq grid))
   (map-indexed (fn [i c]
                  (let [v (- (byte c) (byte \0))
                        row (+ (/ i 9) 1)
                        col (+ (rem i 9) 1)]
                    (make-cell v row col)))
                (seq grid)))
+
+(defn init-candidates
+  [grid]
+  (let [nexti (fn [i j n]
+                (if (= n 9)
+                  (cond
+                    (and (= i 9) (= j 9))     nil
+                    (= j 9)                   [(inc i) 1 1]
+                    :else                     [i (inc j) 1])
+                  [i j (inc n)]))
+        cands (fn loopy
+                ([] (apply loopy [1 1 1]))
+                ([i j n]
+                 (let [nstate (nexti i j n)]
+                   (cond (nil? nstate)
+                         (lazy-seq (cons (make-cell n i j) nil))
+                         :else (lazy-seq (cons (make-cell n i j)
+                                               (apply loopy nstate)))))))]
+    (cands)))
 
 (defn grid-to-string
   [grid]
@@ -93,8 +111,13 @@
   [& args]
   (let [grid "700600008800030000090000310006740005005806900400092100087000020000060009600008001"
         xgrid (str-to-grid grid)]
-    (doseq [item xgrid]
-      (println item))
+
+    ;; (doseq [x (init-candidates xgrid)]
+    ;; (println "candidate" x))
+
+    ;; (doseq [item xgrid]
+    ;;  (println item))
+
     (print-grid xgrid)
     (println (grid-to-string xgrid)))
   (println "Hello, World!"))
