@@ -50,7 +50,28 @@
   [value row column]
   (Cell. value (make-pos row column)))
 
-(defn foo
+(defn print-grid
+  [grid]
+  (println "+-------------------+")
+  (loop [i 0
+         grid grid]
+    (if (empty? grid)
+      (do
+        (println "+-------------------+")
+        nil)
+      (let [item (first grid)
+            v (.value item)]
+        (if (= (rem (inc i) 9) 1)
+          (print "| "))
+        (if (= v 0)
+          (print ".")
+          (print v))
+        (if (= (rem (inc i) 9) 0)
+          (println " |")
+          (print " "))
+        (recur (inc i) (rest grid))))))
+
+(defn str-to-grid
   [grid]
   (println "foo:" grid (seq grid))
   (map-indexed (fn [i c]
@@ -60,9 +81,20 @@
                    (make-cell v row col)))
                (seq grid)))
 
+(defn grid-to-string
+  [grid]
+  (let [sb (new StringBuilder)
+        byte-to-char (fn [byteval] (char (+ (byte \0) byteval)))]
+    (doseq [cell grid]
+      (.append sb (byte-to-char (.value cell))))
+    (.toString sb)))
+
 (defn -main
   [& args]
-  (let [grid "700600008800030000090000310006740005005806900400092100087000020000060009600008001"]
-    (doseq [item (foo grid)]
-      (println item)))
+  (let [grid "700600008800030000090000310006740005005806900400092100087000020000060009600008001"
+        xgrid (str-to-grid grid)]
+    (doseq [item xgrid]
+      (println item))
+    (print-grid xgrid)
+    (println (grid-to-string xgrid)))
   (println "Hello, World!"))
