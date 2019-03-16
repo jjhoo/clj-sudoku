@@ -19,17 +19,39 @@
 (if *compile-files*
   (set! *warn-on-reflection* true))
 
+(defprotocol Seeing
+  (in-same-box [this other])
+  (in-same-column [this other])
+  (in-same-row [this other]))
+
 (deftype Box [^byte row ^byte column]
-  Object (toString [_]
-           (str "(" row " " column ")")))
+  Object
+  (equals [this other]
+    (and (= column (.column other))
+         (= row (.row other))))
+  (toString [_]
+    (str "(" row " " column ")")))
 
 (deftype Pos [^byte row ^byte column ^Box box]
-  Object (toString [_]
-           (str "(" row " " column " " box ")")))
+  Seeing
+  (in-same-box [this other] (= box (.box other)))
+  (in-same-column [this other] (= (.column this) (.column other)))
+  (in-same-row [this other] (= (.row this) (.row other)))
+
+  Object
+  (equals [this other]
+    (and (= column (.column other))
+         (= row (.row other))))
+  (toString [_]
+    (str "(" row " " column " " box ")")))
 
 (deftype Cell [^byte value ^Pos pos]
-  Object (toString [_]
-           (str "Cell#{value: " value ", pos: " pos "}")))
+  Object
+  (equals [this other]
+    (and (= value (.value other))
+         (= pos (.pos other))))
+  (toString [_]
+    (str "Cell#{value: " value ", pos: " pos "}")))
 
 (defmethod print-method Box [v ^java.io.Writer w]
   (.write w (str "Box#{row: " (.row v) ", column: " (.column v) "}")))
@@ -127,18 +149,36 @@
 
 (defn sudoku-solve
   [^Sudoku this]
-  (println "solve grid" (:solved (.state this))))
+  (println "solve grid"))
 
 (defn -main
   [& args]
   (let [grid "700600008800030000090000310006740005005806900400092100087000020000060009600008001"
-        xgrid (str-to-grid grid)]
+        xgrid (str-to-grid grid)
+        pos1 (make-pos 1 1)
+        pos1b (make-pos 1 1)
+        pos2 (make-pos 1 3)
+        pos3 (make-pos 3 1)
+        pos4 (make-pos 5 5)]
 
     ;; (doseq [x (init-candidates xgrid)]
     ;; (println "candidate" x))
 
     ;; (doseq [item xgrid]
     ;;  (println item))
+    (println (.in-same-row pos1 pos2)
+             (.in-same-row pos1 pos3)
+             (.in-same-row pos1 pos4))
+
+    (println (.in-same-column pos1 pos2)
+             (.in-same-column pos1 pos3)
+             (.in-same-column pos1 pos4))
+
+    (println (.in-same-box pos1 pos2)
+             (.in-same-box pos1 pos3)
+             (.in-same-box pos1 pos4))
+
+    (println (= pos1 pos1b))
 
     (print-grid xgrid)
     (println (grid-to-string xgrid))
