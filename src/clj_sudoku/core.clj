@@ -19,10 +19,16 @@
 (if *compile-files*
   (set! *warn-on-reflection* true))
 
-(defprotocol Seeing
+(defprotocol Filtering
+  (in-box [this box])
+  (in-column [this column])
+  (in-row [this row])
   (in-same-box [this other])
   (in-same-column [this other])
   (in-same-row [this other]))
+
+(defprotocol CellFiltering
+  (in-same-unit [this other]))
 
 (deftype Box [^byte row ^byte column]
   Object
@@ -33,7 +39,10 @@
     (str "(" row " " column ")")))
 
 (deftype Pos [^byte row ^byte column ^Box box]
-  Seeing
+  Filtering
+  (in-box [this obox] (= box obox))
+  (in-column [this ocolumn] (= column ocolumn))
+  (in-row [this orow] (= row orow))
   (in-same-box [this other] (= box (.box other)))
   (in-same-column [this other] (= (.column this) (.column other)))
   (in-same-row [this other] (= (.row this) (.row other)))
@@ -46,6 +55,12 @@
     (str "(" row " " column " " box ")")))
 
 (deftype Cell [^byte value ^Pos pos]
+  CellFiltering
+  (in-same-unit [this other]
+    (or (.in-same-column pos (.pos other))
+        (.in-same-row pos (.pos other))
+        (.in-same-box pos (.pos other))))
+
   Object
   (equals [this other]
     (and (= value (.value other))
@@ -132,24 +147,64 @@
       (.append sb (byte-to-char (.value cell))))
     (.toString sb)))
 
+(defn candidates-remove-solutions
+  [grid cands]
+  (println "foo"))
+
 (gen-class
  :name clj-sudoku.core.Sudoku
  :state state
  :init init
  :constructors {[String] []}
  :prefix "sudoku-"
- :methods [[solve [] void]])
+ :methods [[solve [] void]
+           [getBox [Object] clojure.lang.ISeq]
+           [getColumn [byte] clojure.lang.ISeq]
+           [getRow [byte] clojure.lang.ISeq]])
 
 (import 'clj-sudoku.core.Sudoku)
 
 (defn sudoku-init
   [^String str]
-  (let [grid (str-to-grid str)]
-    [[] {:solved grid :candidates (init-candidates grid)}]))
+  (let [grid (str-to-grid str)
+        cands (init-candidates grid)
+        nonz (filter (fn [^Cell cell] (not (= (.value cell) 0))) grid)
+        fcands (loop [grid nonz ncands cands]
+                 (if (empty? grid)
+                   ncands
+                   (let [head (first grid)
+                         tail (rest grid)
+                         pos (.pos head)
+                         value (.value head)
+                         nncands (filter (fn [^Cell cell]
+                                           (not (or (= pos (.pos cell))
+                                                    (and (= value (.value cell))
+                                                         (.in-same-unit head cell)))))
+                                         ncands)]
+                     (recur tail nncands))))]
+    [[] {:solved grid :candidates fcands}]))
 
 (defn sudoku-solve
   [^Sudoku this]
   (println "solve grid"))
+
+(defn sudoku-getBox
+  [^Sudoku this ^Box box]
+  (filter (fn [^Cell cell]
+            (and (not (= (.value cell) 0))
+                 (.in-box (.pos cell) box))) (:solved (.state this))))
+
+(defn sudoku-getColumn
+  [^Sudoku this ^Byte column]
+  (filter (fn [^Cell cell]
+            (and (not (= (.value cell) 0))
+                 (.in-column (.pos cell) column))) (:solved (.state this))))
+
+(defn sudoku-getRow
+  [^Sudoku this ^Byte row]
+  (filter (fn [^Cell cell]
+            (and (not (= (.value cell) 0))
+                 (.in-row (.pos cell) row))) (:solved (.state this))))
 
 (defn -main
   [& args]
@@ -183,4 +238,9 @@
     (print-grid xgrid)
     (println (grid-to-string xgrid))
     (def sudoku (Sudoku. grid))
+    (println (.getColumn sudoku 1))
+    (println (.getRow sudoku 1))
+    (println (.getBox sudoku (make-box 1 1)))
+    ;; (doseq [c (:candidates (.state sudoku))]
+    ;;  (println "candidate" c))
     (.solve ^Sudoku sudoku)))
