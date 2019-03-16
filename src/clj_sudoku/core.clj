@@ -16,6 +16,9 @@
 (ns clj-sudoku.core
   (:gen-class))
 
+(if *compile-files*
+  (set! *warn-on-reflection* true))
+
 (deftype Box [^byte row ^byte column]
   Object (toString [_]
            (str "(" row " " column ")")))
@@ -107,6 +110,25 @@
       (.append sb (byte-to-char (.value cell))))
     (.toString sb)))
 
+(gen-class
+ :name clj-sudoku.core.Sudoku
+ :state state
+ :init init
+ :constructors {[String] []}
+ :prefix "sudoku-"
+ :methods [[solve [] void]])
+
+(import 'clj-sudoku.core.Sudoku)
+
+(defn sudoku-init
+  [^String str]
+  (let [grid (str-to-grid str)]
+    [[] {:solved grid :candidates (init-candidates grid)}]))
+
+(defn sudoku-solve
+  [^Sudoku this]
+  (println "solve grid" (:solved (.state this))))
+
 (defn -main
   [& args]
   (let [grid "700600008800030000090000310006740005005806900400092100087000020000060009600008001"
@@ -119,4 +141,6 @@
     ;;  (println item))
 
     (print-grid xgrid)
-    (println (grid-to-string xgrid))))
+    (println (grid-to-string xgrid))
+    (def sudoku (Sudoku. grid))
+    (.solve ^Sudoku sudoku)))
