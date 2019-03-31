@@ -164,11 +164,16 @@
                             ncands)]
         (recur tail nncands)))))
 
+(defn number-to-box
+  [^Long box]
+  (Box. (inc (/ (dec box) 3))
+        (inc (rem (dec box) 3))))
+
 (defn get-cells-box
-  [^clojure.lang.ISeq cells ^Box box]
+  [^clojure.lang.ISeq cells ^Byte box]
   (filter (fn [^Cell cell]
             (and (not (= (.value cell) 0))
-                 (.in-box (.pos cell) box))) cells))
+                 (.in-box (.pos cell) (number-to-box box)))) cells))
 
 (defn get-cells-column
   [^clojure.lang.ISeq cells ^Byte column]
@@ -181,6 +186,44 @@
   (filter (fn [^Cell cell]
             (and (not (= (.value cell) 0))
                  (.in-row (.pos cell) row))) cells))
+
+(defn ucpos
+  [cells]
+  (distinct (map (fn [^Cell cell] (.pos cell)) cells)))
+
+(deftype FinderResult [^clojure.lang.ISeq solved ^clojure.lang.ISeq eliminated])
+
+(defn finder
+  [pred ^clojure.lang.ISeq cands]
+  (loop [seq (for [i (range 1 10)
+                   fun [get-cells-row get-cells-column get-cells-box]]
+               [i fun])
+         solved []
+         eliminated []]
+    (if (empty? seq)
+      (FinderResult. (distinct solved) (distinct eliminated))
+      (let [[i fun] (first seq)
+            ^FinderResult fr (pred (fun cands i))]
+        (recur (rest seq)
+               (concat solved (.solved fr))
+               (concat eliminated (.eliminated fr)))))))
+
+(defn find-singles-simple
+  [^clojure.lang.ISeq cands]
+  (let [fun (fn [^clojure.lang.ISeq cells]
+              (loop [poss (ucpos cells)
+                     solved []]
+                (if (empty? poss)
+                  (FinderResult. solved [])
+                  (let [head (first poss)
+                        tail (rest poss)
+                        samepos (filter (fn [^Cell cell]
+                                          (= head (.pos cell)))
+                                        cells)]
+                    (if (= 1 (count samepos))
+                      (recur tail (concat solved samepos))
+                      (recur tail solved))))))]
+    (finder fun cands)))
 
 (gen-class
  :name clj-sudoku.core.Sudoku
@@ -237,4 +280,6 @@
     (def sudoku (Sudoku. grid))
     ;; (doseq [c (:candidates (.state sudoku))]
     ;;  (println "  " c))
-    (.solve ^Sudoku sudoku)))
+    (.solve ^Sudoku sudoku)
+    (doseq [c (.solved (find-singles-simple (:candidates (.state sudoku))))]
+      (println "  " c))))
