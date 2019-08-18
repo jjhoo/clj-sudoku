@@ -262,7 +262,7 @@
            nfinders finders]
       (cond (empty? nfinders)
             (dosync
-             (ref-set (.state this) (assoc @(.state this) :solved grid)))
+             (ref-set (.state this) (assoc @(.state this) :solved grid :candidates candidates)))
             ;;
             :else (let [finder (first nfinders)
                         res (finder candidates)
@@ -316,4 +316,5 @@
     ;; (doseq [c (:candidates (.state sudoku))]
     ;;  (println "  " c))
     (.solve ^Sudoku sudoku)
-    (print-grid (:solved @(.state sudoku)))))
+    (print-grid (:solved @(.state sudoku)))
+    (println "candidates left" (count (:candidates @(.state sudoku))))))
