@@ -86,6 +86,10 @@
   [row column]
   (Pos. row column (make-box row column)))
 
+(defn pos-to-vector-index
+  [^Pos pos]
+  (+ (* 9 (- (.row pos) 1)) (- (.column pos) 1)))
+
 (defn make-cell
   [value row column]
   (Cell. value (make-pos row column)))
@@ -113,12 +117,12 @@
 
 (defn str-to-grid
   [grid]
-  (map-indexed (fn [i c]
-                 (let [v (- (byte c) (byte \0))
-                       row (+ (/ i 9) 1)
-                       col (+ (rem i 9) 1)]
-                   (make-cell v row col)))
-               (seq grid)))
+  (into [] (map-indexed (fn [i c]
+                          (let [v (- (byte c) (byte \0))
+                                row (+ (/ i 9) 1)
+                                col (+ (rem i 9) 1)]
+                            (make-cell v row col)))
+                        (seq grid))))
 
 (defn init-candidates
   [grid]
@@ -146,6 +150,14 @@
     (doseq [cell grid]
       (.append sb (byte-to-char (.value cell))))
     (.toString sb)))
+
+(defn grid-update-solved
+  [grid solved]
+  (let [solved-map (into {} (map (fn [^Cell cell] [(.pos cell) cell]) solved))]
+    (reduce (fn [acc [pos v]]
+              (assoc acc (pos-to-vector-index pos) v))
+            grid
+            solved-map)))
 
 (defn candidates-remove-solutions
   [grid cands]
@@ -240,11 +252,34 @@
   (let [grid (str-to-grid str)
         cands (init-candidates grid)
         nonz (filter (fn [^Cell cell] (not (= (.value cell) 0))) grid) ]
-    [[] {:solved grid :candidates (candidates-remove-solutions nonz cands)}]))
+    [[] (ref {:solved grid :candidates (candidates-remove-solutions nonz cands)})]))
 
 (defn sudoku-solve
   [^Sudoku this]
-  (println "solve grid"))
+  (let [finders [find-singles-simple]]
+    (loop [grid (:solved @(.state this))
+           candidates (:candidates @(.state this))
+           nfinders finders]
+      (cond (empty? nfinders)
+            (dosync
+             (ref-set (.state this) (assoc @(.state this) :solved grid)))
+            ;;
+            :else (let [finder (first nfinders)
+                        res (finder candidates)
+                        solved (.solved res)
+                        eliminated (.eliminated res)]
+                    (cond
+                      (not (empty? solved))
+                      (let [ngrid (grid-update-solved grid solved)
+                            ncandidates (candidates-remove-solutions solved candidates)]
+                        (recur ngrid ncandidates finders))
+                      ;;
+                      (not (empty? eliminated))
+                      (do
+                        (println "Update eliminated")
+                        (recur grid candidates (rest nfinders)))
+                      ;;
+                      :else (recur grid candidates (rest nfinders))))))))
 
 (defn -main
   [& args]
@@ -281,5 +316,4 @@
     ;; (doseq [c (:candidates (.state sudoku))]
     ;;  (println "  " c))
     (.solve ^Sudoku sudoku)
-    (doseq [c (.solved (find-singles-simple (:candidates (.state sudoku))))]
-      (println "  " c))))
+    (print-grid (:solved @(.state sudoku)))))
