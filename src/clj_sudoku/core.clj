@@ -63,8 +63,8 @@
 
 (defn make-box
   [row column]
-  (->Box (+ (/ (- row 1) 3) 1)
-         (+ (/ (- column 1) 3) 1)))
+  (->Box (inc (/ (dec row) 3))
+         (inc (/ (dec column) 3))))
 
 (defn make-pos
   [row column]
@@ -72,7 +72,7 @@
 
 (defn pos-to-vector-index
   [^Pos pos]
-  (+ (* 9 (- (.row pos) 1)) (- (.column pos) 1)))
+  (+ (* 9 (dec (.row pos))) (dec (.column pos))))
 
 (defn make-cell
   [value row column]
@@ -103,8 +103,8 @@
   [grid]
   (into [] (map-indexed (fn [i c]
                           (let [v (- (byte c) (byte \0))
-                                row (+ (/ i 9) 1)
-                                col (+ (rem i 9) 1)]
+                                row (inc (/ i 9))
+                                col (inc (rem i 9))]
                             (make-cell v row col)))
                         (seq grid))))
 
