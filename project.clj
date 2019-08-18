@@ -6,6 +6,7 @@
   :main clj-sudoku.core
   :aot [clj-sudoku.core]
   :target-path "target/%s"
-  :plugins [[lein-cljfmt "0.6.4"]]
+  :plugins [[lein-cljfmt "0.6.4"]
+            [jonase/eastwood "0.3.6"]]
   :global-vars {*warn-on-reflection* true}
   :profiles {:uberjar {:aot :all}})

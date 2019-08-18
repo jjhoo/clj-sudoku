@@ -248,8 +248,8 @@
             (dosync
              (ref-set (.state this) (assoc @(.state this) :solved grid :candidates candidates)))
             ;;
-            :else (let [finder (first nfinders)
-                        ^FinderResult res (finder candidates)
+            :else (let [finderFun (first nfinders)
+                        ^FinderResult res (finderFun candidates)
                         solved (.solved res)
                         eliminated (.eliminated res)]
                     (cond
@@ -296,9 +296,11 @@
 
     (print-grid xgrid)
     (println (grid-to-string xgrid))
-    (def sudoku (Sudoku. grid))
-    ;; (doseq [c (:candidates (.state sudoku))]
-    ;;  (println "  " c))
-    (.solve ^Sudoku sudoku)
-    (print-grid (:solved @(.state ^Sudoku sudoku)))
-    (println "candidates left" (count (:candidates @(.state ^Sudoku sudoku))))))
+    (let [sudoku (Sudoku. grid)]
+      ;; (doseq [c (:candidates (.state sudoku))]
+      ;;  (println "  " c))
+      (.solve ^Sudoku sudoku)
+      (let [solved (:solved @(.state ^Sudoku sudoku))]
+        (print-grid solved)
+        (println (grid-to-string solved)))
+      (println "candidates left" (count (:candidates @(.state ^Sudoku sudoku)))))))
