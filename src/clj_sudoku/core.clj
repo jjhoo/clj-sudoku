@@ -251,7 +251,7 @@
   [^String str]
   (let [grid (str-to-grid str)
         cands (init-candidates grid)
-        nonz (filter (fn [^Cell cell] (not (= (.value cell) 0))) grid) ]
+        nonz (filter (fn [^Cell cell] (not (= (.value cell) 0))) grid)]
     [[] (ref {:solved grid :candidates (candidates-remove-solutions nonz cands)})]))
 
 (defn sudoku-solve

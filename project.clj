@@ -6,4 +6,5 @@
   :main clj-sudoku.core
   :aot [clj-sudoku.core]
   :target-path "target/%s"
+  :plugins [[lein-cljfmt "0.6.4"]]
   :profiles {:uberjar {:aot :all}})
