@@ -16,9 +16,6 @@
 (ns clj-sudoku.core
   (:gen-class))
 
-(if *compile-files*
-  (set! *warn-on-reflection* true))
-
 (defprotocol Filtering
   (in-box [this box])
   (in-column [this column])
@@ -30,51 +27,38 @@
 (defprotocol CellFiltering
   (in-same-unit [this other]))
 
-(deftype Box [^byte row ^byte column]
+(defrecord Box [^byte row ^byte column]
   Object
-  (equals [this other]
-    (and (= column (.column other))
-         (= row (.row other))))
   (toString [_]
     (str "(" row " " column ")")))
 
-(deftype Pos [^byte row ^byte column ^Box box]
+(defrecord Pos [^byte row ^byte column ^Box box]
   Filtering
   (in-box [this obox] (= box obox))
   (in-column [this ocolumn] (= column ocolumn))
   (in-row [this orow] (= row orow))
-  (in-same-box [this other] (= box (.box other)))
-  (in-same-column [this other] (= (.column this) (.column other)))
-  (in-same-row [this other] (= (.row this) (.row other)))
+  (in-same-box [this other] (= box (:box other)))
+  (in-same-column [this other] (= (:column this) (:column other)))
+  (in-same-row [this other] (= (:row this) (:row other)))
 
   Object
-  (equals [this other]
-    (and (= column (.column other))
-         (= row (.row other))))
   (toString [_]
     (str "(" row " " column " " box ")")))
 
-(deftype Cell [^byte value ^Pos pos]
+(defrecord Cell [^byte value ^Pos pos]
   CellFiltering
   (in-same-unit [this other]
-    (or (.in-same-column pos (.pos other))
-        (.in-same-row pos (.pos other))
-        (.in-same-box pos (.pos other))))
+    (or (.in-same-column pos (:pos other))
+        (.in-same-row pos (:pos other))
+        (.in-same-box pos (:pos other)))))
 
-  Object
-  (equals [this other]
-    (and (= value (.value other))
-         (= pos (.pos other))))
-  (toString [_]
-    (str "Cell#{value: " value ", pos: " pos "}")))
-
-(defmethod print-method Box [v ^java.io.Writer w]
+(defmethod print-method Box [^Box v ^java.io.Writer w]
   (.write w (str "Box#{row: " (.row v) ", column: " (.column v) "}")))
 
-(defmethod print-method Pos [v ^java.io.Writer w]
+(defmethod print-method Pos [^Pos v ^java.io.Writer w]
   (.write w (str "Pos#{row: " (.row v) ", column: " (.column v) "}")))
 
-(defmethod print-method Cell [v ^java.io.Writer w]
+(defmethod print-method Cell [^Cell v ^java.io.Writer w]
   (.write w (str "Cell#{value: " (.value v) ", pos: " (str (.pos v)) "}")))
 
 (defn make-box
@@ -103,7 +87,7 @@
       (do
         (println "+-------------------+")
         nil)
-      (let [item (first grid)
+      (let [^Cell item (first grid)
             v (.value item)]
         (if (= (rem (inc i) 9) 1)
           (print "| "))
@@ -147,7 +131,7 @@
   [grid]
   (let [sb (new StringBuilder)
         byte-to-char (fn [byteval] (char (+ (byte \0) byteval)))]
-    (doseq [cell grid]
+    (doseq [^Cell cell grid]
       (.append sb (byte-to-char (.value cell))))
     (.toString sb)))
 
@@ -165,7 +149,7 @@
   (loop [ngrid grid ncands cands]
     (if (empty? ngrid)
       ncands
-      (let [head (first ngrid)
+      (let [^Cell head (first ngrid)
             tail (rest ngrid)
             pos (.pos head)
             value (.value head)
@@ -184,20 +168,20 @@
 (defn get-cells-box
   [^clojure.lang.ISeq cells ^Byte box]
   (filter (fn [^Cell cell]
-            (and (not (= (.value cell) 0))
-                 (.in-box (.pos cell) (number-to-box box)))) cells))
+            (and (not (= (:value cell) 0))
+                 (:in-box (:pos cell) (number-to-box box)))) cells))
 
 (defn get-cells-column
   [^clojure.lang.ISeq cells ^Byte column]
   (filter (fn [^Cell cell]
-            (and (not (= (.value cell) 0))
-                 (.in-column (.pos cell) column))) cells))
+            (and (not (= (:value cell) 0))
+                 (:in-column (:pos cell) column))) cells))
 
 (defn get-cells-row
   [^clojure.lang.ISeq cells ^Byte row]
   (filter (fn [^Cell cell]
-            (and (not (= (.value cell) 0))
-                 (.in-row (.pos cell) row))) cells))
+            (and (not (= (:value cell) 0))
+                 (:in-row (:pos cell) row))) cells))
 
 (defn ucpos
   [cells]
@@ -265,7 +249,7 @@
              (ref-set (.state this) (assoc @(.state this) :solved grid :candidates candidates)))
             ;;
             :else (let [finder (first nfinders)
-                        res (finder candidates)
+                        ^FinderResult res (finder candidates)
                         solved (.solved res)
                         eliminated (.eliminated res)]
                     (cond
@@ -285,11 +269,11 @@
   [& args]
   (let [grid "700600008800030000090000310006740005005806900400092100087000020000060009600008001"
         xgrid (str-to-grid grid)
-        pos1 (make-pos 1 1)
-        pos1b (make-pos 1 1)
-        pos2 (make-pos 1 3)
-        pos3 (make-pos 3 1)
-        pos4 (make-pos 5 5)]
+        ^Pos pos1 (make-pos 1 1)
+        ^Pos pos1b (make-pos 1 1)
+        ^Pos pos2 (make-pos 1 3)
+        ^Pos pos3 (make-pos 3 1)
+        ^Pos pos4 (make-pos 5 5)]
 
     ;; (doseq [x (init-candidates xgrid)]
     ;; (println "candidate" x))
@@ -316,5 +300,5 @@
     ;; (doseq [c (:candidates (.state sudoku))]
     ;;  (println "  " c))
     (.solve ^Sudoku sudoku)
-    (print-grid (:solved @(.state sudoku)))
-    (println "candidates left" (count (:candidates @(.state sudoku))))))
+    (print-grid (:solved @(.state ^Sudoku sudoku)))
+    (println "candidates left" (count (:candidates @(.state ^Sudoku sudoku))))))
