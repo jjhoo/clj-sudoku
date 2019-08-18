@@ -63,12 +63,12 @@
 
 (defn make-box
   [row column]
-  (Box. (+ (/ (- row 1) 3) 1)
-        (+ (/ (- column 1) 3) 1)))
+  (->Box (+ (/ (- row 1) 3) 1)
+         (+ (/ (- column 1) 3) 1)))
 
 (defn make-pos
   [row column]
-  (Pos. row column (make-box row column)))
+  (->Pos row column (make-box row column)))
 
 (defn pos-to-vector-index
   [^Pos pos]
@@ -76,7 +76,7 @@
 
 (defn make-cell
   [value row column]
-  (Cell. value (make-pos row column)))
+  (->Cell value (make-pos row column)))
 
 (defn print-grid
   [grid]
@@ -162,8 +162,8 @@
 
 (defn number-to-box
   [^Long box]
-  (Box. (inc (/ (dec box) 3))
-        (inc (rem (dec box) 3))))
+  (->Box (inc (/ (dec box) 3))
+         (inc (rem (dec box) 3))))
 
 (defn get-cells-box
   [^clojure.lang.ISeq cells ^Byte box]
@@ -210,7 +210,7 @@
               (loop [poss (ucpos cells)
                      solved []]
                 (if (empty? poss)
-                  (FinderResult. solved [])
+                  (->FinderResult solved [])
                   (let [head (first poss)
                         tail (rest poss)
                         samepos (filter (fn [^Cell cell]
@@ -246,7 +246,7 @@
            nfinders finders]
       (cond (empty? nfinders)
             (dosync
-             (ref-set (.state this) (assoc @(.state this) :solved grid :candidates candidates)))
+             (alter (.state this) assoc :solved grid :candidates candidates))
             ;;
             :else (let [finderFun (first nfinders)
                         ^FinderResult res (finderFun candidates)
