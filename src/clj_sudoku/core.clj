@@ -168,20 +168,20 @@
 (defn get-cells-box
   [^clojure.lang.ISeq cells ^Byte box]
   (filter (fn [^Cell cell]
-            (and (not (= (:value cell) 0))
-                 (:in-box (:pos cell) (number-to-box box)))) cells))
+            (and (not= (:value cell) 0)
+                 (in-box (:pos cell) (number-to-box box)))) cells))
 
 (defn get-cells-column
   [^clojure.lang.ISeq cells ^Byte column]
   (filter (fn [^Cell cell]
-            (and (not (= (:value cell) 0))
-                 (:in-column (:pos cell) column))) cells))
+            (and (not= (:value cell) 0)
+                 (in-column (:pos cell) column))) cells))
 
 (defn get-cells-row
   [^clojure.lang.ISeq cells ^Byte row]
   (filter (fn [^Cell cell]
-            (and (not (= (:value cell) 0))
-                 (:in-row (:pos cell) row))) cells))
+            (and (not= (:value cell) 0)
+                 (in-row (:pos cell) row))) cells))
 
 (defn ucpos
   [cells]
