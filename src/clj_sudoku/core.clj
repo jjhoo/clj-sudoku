@@ -197,12 +197,16 @@
          solved []
          eliminated []]
     (if (empty? seq)
-      (FinderResult. (distinct solved) (distinct eliminated))
+      (->FinderResult (distinct solved) (distinct eliminated))
       (let [[i fun] (first seq)
-            ^FinderResult fr (pred (fun cands i))]
-        (recur (rest seq)
-               (concat solved (.solved fr))
-               (concat eliminated (.eliminated fr)))))))
+            cells (fun cands i)]
+        (if
+         (empty? cells)
+          (recur (rest seq) solved eliminated)
+          (let [^FinderResult fr (pred cells)]
+            (recur (rest seq)
+                   (concat solved (.solved fr))
+                   (concat eliminated (.eliminated fr)))))))))
 
 (defn find-singles-simple
   [^clojure.lang.ISeq cands]
@@ -219,6 +223,17 @@
                     (if (= 1 (count samepos))
                       (recur tail (concat solved samepos))
                       (recur tail solved))))))]
+    (finder fun cands)))
+
+(defn find-singles
+  [^clojure.lang.ISeq cands]
+  (let [fun (fn [^clojure.lang.ISeq cells]
+              (let [grouped (group-by :value cells)
+                    singled (map (comp first second)
+                                 (filter (fn [[pos cells]]
+                                           (== (count cells) 1))
+                                         grouped))]
+                (->FinderResult singled [])))]
     (finder fun cands)))
 
 (gen-class
@@ -240,7 +255,8 @@
 
 (defn sudoku-solve
   [^Sudoku this]
-  (let [finders [find-singles-simple]]
+  (let [finders [find-singles-simple
+                 find-singles]]
     (loop [grid (:solved @(.state this))
            candidates (:candidates @(.state this))
            nfinders finders]
