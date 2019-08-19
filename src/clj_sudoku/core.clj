@@ -211,18 +211,12 @@
 (defn find-singles-simple
   [^clojure.lang.ISeq cands]
   (let [fun (fn [^clojure.lang.ISeq cells]
-              (loop [poss (ucpos cells)
-                     solved []]
-                (if (empty? poss)
-                  (->FinderResult solved [])
-                  (let [head (first poss)
-                        tail (rest poss)
-                        samepos (filter (fn [^Cell cell]
-                                          (= head (.pos cell)))
-                                        cells)]
-                    (if (= 1 (count samepos))
-                      (recur tail (concat solved samepos))
-                      (recur tail solved))))))]
+              (let [grouped (group-by :pos cells)
+                    singled (map (comp first second)
+                                 (filter (fn [[pos cells]]
+                                           (== (count cells) 1))
+                                         grouped))]
+                (->FinderResult singled [])))]
     (finder fun cands)))
 
 (defn find-singles
