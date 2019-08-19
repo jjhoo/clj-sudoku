@@ -213,7 +213,7 @@
   (let [fun (fn [^clojure.lang.ISeq cells]
               (let [grouped (group-by :pos cells)
                     singled (map (comp first second)
-                                 (filter (fn [[pos cells]]
+                                 (filter (fn [[_ cells]]
                                            (== (count cells) 1))
                                          grouped))]
                 (->FinderResult singled [])))]
@@ -224,7 +224,7 @@
   (let [fun (fn [^clojure.lang.ISeq cells]
               (let [grouped (group-by :value cells)
                     singled (map (comp first second)
-                                 (filter (fn [[pos cells]]
+                                 (filter (fn [[_ cells]]
                                            (== (count cells) 1))
                                          grouped))]
                 (->FinderResult singled [])))]
