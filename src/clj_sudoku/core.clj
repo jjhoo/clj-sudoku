@@ -16,6 +16,8 @@
 (ns clj-sudoku.core
   (:gen-class))
 
+(require '(clojure set))
+
 (defprotocol Filtering
   (in-box [this box])
   (in-column [this column])
@@ -43,14 +45,28 @@
 
   Object
   (toString [_]
-    (str "(" row " " column " " box ")")))
+    (str "(" row " " column " " box ")"))
+
+  Comparable
+  (compareTo [this other]
+    (let [rcmp (compare row (:row other))]
+      (if (not (zero? rcmp))
+        rcmp
+        (compare column (:value column))))))
 
 (defrecord Cell [^byte value ^Pos pos]
   CellFiltering
   (in-same-unit [this other]
     (or (.in-same-column pos (:pos other))
         (.in-same-row pos (:pos other))
-        (.in-same-box pos (:pos other)))))
+        (.in-same-box pos (:pos other))))
+
+  Comparable
+  (compareTo [this other]
+    (let [cmp (compare pos (:pos other))]
+      (if (not (zero? cmp))
+        cmp
+        (compare value (:value other))))))
 
 (defmethod print-method Box [^Box v ^java.io.Writer w]
   (.write w (str "Box#{row: " (.row v) ", column: " (.column v) "}")))
@@ -165,11 +181,17 @@
   (->Box (inc (/ (dec box) 3))
          (inc (rem (dec box) 3))))
 
-(defn get-cells-box
+(defn get-cells-box-n
   [^clojure.lang.ISeq cells ^Byte box]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-box (:pos cell) (number-to-box box)))) cells))
+
+(defn get-cells-box
+  [^clojure.lang.ISeq cells ^Box box]
+  (filter (fn [^Cell cell]
+            (and (not= (:value cell) 0)
+                 (in-box (:pos cell) box))) cells))
 
 (defn get-cells-column
   [^clojure.lang.ISeq cells ^Byte column]
@@ -190,9 +212,11 @@
 (deftype FinderResult [^clojure.lang.ISeq solved ^clojure.lang.ISeq eliminated])
 
 (defn finder
-  [pred ^clojure.lang.ISeq cands]
+  [pred ^clojure.lang.ISeq cands & {:keys [noboxes] :or {noboxes false}}]
   (loop [seq (for [i (range 1 10)
-                   fun [get-cells-row get-cells-column get-cells-box]]
+                   fun (if noboxes
+                         [get-cells-row get-cells-column]
+                         [get-cells-row get-cells-column get-cells-box-n])]
                [i fun])
          solved []
          eliminated []]
@@ -228,6 +252,38 @@
                 (->FinderResult singled [])))]
     (finder fun cands)))
 
+(defn find-boxline-reductions
+  [^clojure.lang.ISeq cands]
+  (let [fun (fn [^clojure.lang.ISeq cells]
+              (let [n-grouped (group-by :value cells)
+                    box-line-cells (filter (fn [[_ cells]]
+                                             (if (= (count cells) 1)
+                                               false
+                                               (let [^Cell a (first cells)]
+                                                 (every? (fn [^Cell b]
+                                                           (.in-same-box ^Pos (:pos a)
+                                                                         ^Pos (:pos b)))
+                                                         (rest cells)))))
+                                           n-grouped)]
+                (loop [box-line-cells box-line-cells
+                       found []]
+                  (if (empty? box-line-cells)
+                    (->FinderResult [] found)
+                    (let [[n cells] (first box-line-cells)
+                          pos (:pos (first cells))
+                          same-box? (partial (fn [^Pos pos1 ^Pos pos2]
+                                               (.in-same-box pos1 pos2))
+                                             pos)
+                          box-cells-n (filter #(= n (:value %1)) (get-cells-box cands (:box pos)))
+                          all (set (map :pos box-cells-n))
+                          exclude (set (map :pos cells))
+                          diff (clojure.set/difference all exclude)
+                          nfound (filter #(contains? diff (:pos %1)) box-cells-n)]
+                      (if (empty? diff)
+                        (recur (rest box-line-cells) found)
+                        (recur (rest box-line-cells) (concat found nfound))))))))]
+    (finder fun cands :noboxes true)))
+
 (gen-class
  :name clj-sudoku.core.Sudoku
  :state state
@@ -248,7 +304,8 @@
 (defn sudoku-solve
   [^Sudoku this]
   (let [finders [find-singles-simple
-                 find-singles]]
+                 find-singles
+                 find-boxline-reductions]]
     (loop [grid (:solved @(.state this))
            candidates (:candidates @(.state this))
            nfinders finders]
@@ -267,15 +324,15 @@
                         (recur ngrid ncandidates finders))
                       ;;
                       (not (empty? eliminated))
-                      (do
-                        (println "Update eliminated")
-                        (recur grid candidates (rest nfinders)))
+                      (let [s (set eliminated)
+                            ncandidates (remove #(contains? s %1) candidates)]
+                        (recur grid ncandidates finders))
                       ;;
                       :else (recur grid candidates (rest nfinders))))))))
 
 (defn -main
   [& args]
-  (let [grid "700600008800030000090000310006740005005806900400092100087000020000060009600008001"
+  (let [grid "200068050008002000560004801000000530400000002097000000804300096000800300030490007"
         xgrid (str-to-grid grid)
         ^Pos pos1 (make-pos 1 1)
         ^Pos pos1b (make-pos 1 1)
