@@ -210,14 +210,12 @@
 
 (defn find-singles-simple
   [^clojure.lang.ISeq cands]
-  (let [fun (fn [^clojure.lang.ISeq cells]
-              (let [grouped (group-by :pos cells)
-                    singled (map (comp first second)
-                                 (filter (fn [[_ cells]]
-                                           (== (count cells) 1))
-                                         grouped))]
-                (->FinderResult singled [])))]
-    (finder fun cands)))
+  (let [grouped (group-by :pos cands)
+        singled (map (comp first second)
+                     (filter (fn [[_ cells]]
+                               (== (count cells) 1))
+                             grouped))]
+    (->FinderResult singled [])))
 
 (defn find-singles
   [^clojure.lang.ISeq cands]
