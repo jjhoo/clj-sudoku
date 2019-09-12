@@ -14,9 +14,8 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (ns clj-sudoku.core
-  (:gen-class))
-
-(require '(clojure set))
+  (:gen-class)
+  (:require [clojure.set]))
 
 (defprotocol Filtering
   (in-box [this box])
