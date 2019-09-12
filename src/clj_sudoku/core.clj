@@ -15,7 +15,8 @@
 ;;
 (ns clj-sudoku.core
   (:gen-class)
-  (:require [clojure.set]))
+  (:require [clojure.set]
+            [clojure.math.combinatorics]))
 
 (defprotocol Filtering
   (in-box [this box])
@@ -251,6 +252,34 @@
                 (->FinderResult singled [])))]
     (finder fun cands)))
 
+(defn find-naked-pairs
+  [cands]
+  (let [fun (fn [cells]
+              (let [ns (set (map :value cells))
+                    combs (map set (clojure.math.combinatorics/combinations ns 2))
+                    pos-cells (map (fn [[pos cells]]
+                                     [pos (set (map :value cells))])
+                                   (group-by :pos cells))]
+                (loop [combs combs
+                       found []]
+                  (if (empty? combs)
+                    (->FinderResult [] found)
+                    (let [comb (first combs)
+                          pos-numbers (filter (fn [[pos values]]
+                                                (= comb values))
+                                              pos-cells)]
+                      (if (= (count pos-numbers) 2)
+                        (let [pair (set (map first pos-numbers))
+                              others (filter (fn [^Cell cell]
+                                               (and (not (contains? pair (:pos cell)))
+                                                    (contains? comb (:value cell))))
+                                             cells)]
+                          (if (empty? others)
+                            (recur (rest combs) found)
+                            (recur (rest combs) (concat found others))))
+                        (recur (rest combs) found)))))))]
+    (finder fun cands)))
+
 (defn find-boxline-reductions
   [cands]
   (let [fun (fn [cells]
@@ -304,6 +333,7 @@
   [^Sudoku this]
   (let [finders [find-singles-simple
                  find-singles
+                 find-naked-pairs
                  find-boxline-reductions]]
     (loop [grid (:solved @(.state this))
            candidates (:candidates @(.state this))
