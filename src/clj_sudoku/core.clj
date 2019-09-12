@@ -181,25 +181,25 @@
          (inc (rem (dec box) 3))))
 
 (defn get-cells-box-n
-  [^clojure.lang.ISeq cells ^Byte box]
+  [cells ^Byte box]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-box (:pos cell) (number-to-box box)))) cells))
 
 (defn get-cells-box
-  [^clojure.lang.ISeq cells ^Box box]
+  [cells ^Box box]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-box (:pos cell) box))) cells))
 
 (defn get-cells-column
-  [^clojure.lang.ISeq cells ^Byte column]
+  [cells ^Byte column]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-column (:pos cell) column))) cells))
 
 (defn get-cells-row
-  [^clojure.lang.ISeq cells ^Byte row]
+  [cells ^Byte row]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-row (:pos cell) row))) cells))
@@ -208,10 +208,10 @@
   [cells]
   (distinct (map (fn [^Cell cell] (.pos cell)) cells)))
 
-(deftype FinderResult [^clojure.lang.ISeq solved ^clojure.lang.ISeq eliminated])
+(deftype FinderResult [solved eliminated])
 
 (defn finder
-  [pred ^clojure.lang.ISeq cands & {:keys [noboxes] :or {noboxes false}}]
+  [pred cands & {:keys [noboxes] :or {noboxes false}}]
   (loop [seq (for [i (range 1 10)
                    fun (if noboxes
                          [get-cells-row get-cells-column]
@@ -232,7 +232,7 @@
                    (concat eliminated (.eliminated fr)))))))))
 
 (defn find-singles-simple
-  [^clojure.lang.ISeq cands]
+  [cands]
   (let [grouped (group-by :pos cands)
         singled (map (comp first second)
                      (filter (fn [[_ cells]]
@@ -241,8 +241,8 @@
     (->FinderResult singled [])))
 
 (defn find-singles
-  [^clojure.lang.ISeq cands]
-  (let [fun (fn [^clojure.lang.ISeq cells]
+  [cands]
+  (let [fun (fn [cells]
               (let [grouped (group-by :value cells)
                     singled (map (comp first second)
                                  (filter (fn [[_ cells]]
@@ -252,8 +252,8 @@
     (finder fun cands)))
 
 (defn find-boxline-reductions
-  [^clojure.lang.ISeq cands]
-  (let [fun (fn [^clojure.lang.ISeq cells]
+  [cands]
+  (let [fun (fn [cells]
               (let [n-grouped (group-by :value cells)
                     box-line-cells (filter (fn [[_ cells]]
                                              (if (= (count cells) 1)
