@@ -252,11 +252,11 @@
                 (->FinderResult singled [])))]
     (finder fun cands)))
 
-(defn find-naked-pairs
-  [cands]
+(defn find-naked-sets
+  [cands n]
   (let [fun (fn [cells]
               (let [ns (set (map :value cells))
-                    combs (map set (clojure.math.combinatorics/combinations ns 2))
+                    combs (map set (clojure.math.combinatorics/combinations ns n))
                     pos-cells (map (fn [[pos cells]]
                                      [pos (set (map :value cells))])
                                    (group-by :pos cells))]
@@ -266,9 +266,9 @@
                     (->FinderResult [] found)
                     (let [comb (first combs)
                           pos-numbers (filter (fn [[pos values]]
-                                                (= comb values))
+                                                (clojure.set/superset? comb values))
                                               pos-cells)]
-                      (if (= (count pos-numbers) 2)
+                      (if (= (count pos-numbers) n)
                         (let [pair (set (map first pos-numbers))
                               others (filter (fn [^Cell cell]
                                                (and (not (contains? pair (:pos cell)))
@@ -279,6 +279,18 @@
                             (recur (rest combs) (concat found others))))
                         (recur (rest combs) found)))))))]
     (finder fun cands)))
+
+(defn find-naked-pairs
+  [cands]
+  (find-naked-sets cands 2))
+
+(defn find-naked-triples
+  [cands]
+  (find-naked-sets cands 3))
+
+(defn find-naked-quads
+  [cands]
+  (find-naked-sets cands 4))
 
 (defn find-boxline-reductions
   [cands]
@@ -334,6 +346,8 @@
   (let [finders [find-singles-simple
                  find-singles
                  find-naked-pairs
+                 find-naked-triples
+                 find-naked-quads
                  find-boxline-reductions]]
     (loop [grid (:solved @(.state this))
            candidates (:candidates @(.state this))
