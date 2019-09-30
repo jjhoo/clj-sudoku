@@ -324,37 +324,26 @@
                         (recur (rest box-line-cells) (concat found nfound))))))))]
     (finder fun cands :noboxes true)))
 
-(gen-class
- :name clj-sudoku.core.Sudoku
- :state state
- :init init
- :constructors {[String] []}
- :prefix "sudoku-"
- :methods [[solve [] void]])
-
-(import 'clj-sudoku.core.Sudoku)
-
-(defn sudoku-init
+(defn init-solver
   [^String str]
   (let [grid (str-to-grid str)
         cands (init-candidates grid)
         nonz (filter (fn [^Cell cell] (not (= (.value cell) 0))) grid)]
-    [[] (ref {:solved grid :candidates (candidates-remove-solutions nonz cands)})]))
+    [grid (candidates-remove-solutions nonz cands)]))
 
-(defn sudoku-solve
-  [^Sudoku this]
+(defn run-solver
+  [grid candidates]
   (let [finders [find-singles-simple
                  find-singles
                  find-naked-pairs
                  find-naked-triples
                  find-naked-quads
                  find-boxline-reductions]]
-    (loop [grid (:solved @(.state this))
-           candidates (:candidates @(.state this))
+    (loop [grid grid
+           candidates candidates
            nfinders finders]
       (cond (empty? nfinders)
-            (dosync
-             (alter (.state this) assoc :solved grid :candidates candidates))
+            [grid candidates]
             ;;
             :else (let [finderFun (first nfinders)
                         ^FinderResult res (finderFun candidates)
@@ -372,6 +361,29 @@
                         (recur grid ncandidates finders))
                       ;;
                       :else (recur grid candidates (rest nfinders))))))))
+
+
+(gen-class
+ :name "fi.koodisuo.clj-sudoku.Sudoku"
+ :state state
+ :init init
+ :constructors {[String] []}
+ :prefix "sudoku-"
+ :methods [[solve [] void]])
+
+(import 'fi.koodisuo.clj-sudoku.Sudoku)
+
+(defn sudoku-init
+  [^String str]
+  (let [[grid candidates] (init-solver str)]
+    [[] (ref {:solved grid :candidates candidates})]))
+
+(defn sudoku-solve
+  [this]
+  (let [grid (:solved @(.state this))
+        candidates (:candidates @(.state this))
+        [ngrid ncandidates] (run-solver grid candidates)]
+    (dosync (alter (.state this) assoc :solved ngrid :candidates ncandidates))))
 
 (defn -main
   [& args]
