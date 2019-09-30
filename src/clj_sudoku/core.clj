@@ -379,7 +379,7 @@
     [[] (ref {:solved grid :candidates candidates})]))
 
 (defn sudoku-solve
-  [this]
+  [^Sudoku this]
   (let [grid (:solved @(.state this))
         candidates (:candidates @(.state this))
         [ngrid ncandidates] (run-solver grid candidates)]
