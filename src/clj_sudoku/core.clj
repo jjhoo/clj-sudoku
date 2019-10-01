@@ -16,7 +16,8 @@
 (ns clj-sudoku.core
   (:gen-class)
   (:require [clojure.set]
-            [clojure.math.combinatorics]))
+            [clojure.math.combinatorics]
+            [clojure.spec.alpha :as spec]))
 
 (defprotocol Filtering
   (in-box [this box])
@@ -385,42 +386,26 @@
         [ngrid ncandidates] (run-solver grid candidates)]
     (dosync (alter (.state this) assoc :solved ngrid :candidates ncandidates))))
 
+(spec/def ::grid (spec/and string? #(= (count %1) 81)))
+(spec/def ::args (spec/* ::grid))
+
 (defn -main
   [& args]
-  (let [grid "200068050008002000560004801000000530400000002097000000804300096000800300030490007"
-        xgrid (str-to-grid grid)
-        ^Pos pos1 (make-pos 1 1)
-        ^Pos pos1b (make-pos 1 1)
-        ^Pos pos2 (make-pos 1 3)
-        ^Pos pos3 (make-pos 3 1)
-        ^Pos pos4 (make-pos 5 5)]
-
-    ;; (doseq [x (init-candidates xgrid)]
-    ;; (println "candidate" x))
-
-    ;; (doseq [item xgrid]
-    ;;  (println item))
-    (println (.in-same-row pos1 pos2)
-             (.in-same-row pos1 pos3)
-             (.in-same-row pos1 pos4))
-
-    (println (.in-same-column pos1 pos2)
-             (.in-same-column pos1 pos3)
-             (.in-same-column pos1 pos4))
-
-    (println (.in-same-box pos1 pos2)
-             (.in-same-box pos1 pos3)
-             (.in-same-box pos1 pos4))
-
-    (println (= pos1 pos1b))
-
-    (print-grid xgrid)
-    (println (grid-to-string xgrid))
-    (let [sudoku (Sudoku. grid)]
-      ;; (doseq [c (:candidates (.state sudoku))]
-      ;;  (println "  " c))
-      (.solve ^Sudoku sudoku)
-      (let [solved (:solved @(.state ^Sudoku sudoku))]
-        (print-grid solved)
-        (println (grid-to-string solved)))
-      (println "candidates left" (count (:candidates @(.state ^Sudoku sudoku)))))))
+  (let [parsed-args (spec/conform ::args args)]
+    (if (= ::spec/invalid parsed-args)
+      (do
+        (println "Bad arguments")
+        (spec/explain ::args args))
+      (if (zero? (count parsed-args))
+        (println "Usage: [ grids ... ]")
+        (doseq [grid parsed-args]
+          (let [xgrid (str-to-grid grid)]
+            ;; (print-grid xgrid)
+            (println "IN " (grid-to-string xgrid))
+            (let [sudoku (Sudoku. grid)]
+              (.solve ^Sudoku sudoku)
+              (let [solved (:solved @(.state ^Sudoku sudoku))]
+                ;; (print-grid solved)
+                (println "OUT" (grid-to-string solved))
+                ;; (println "candidates left" (count (:candidates @(.state ^Sudoku sudoku))))
+              ))))))))
