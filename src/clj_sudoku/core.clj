@@ -293,6 +293,47 @@
   [cands]
   (find-naked-sets cands 4))
 
+(defn find-hidden-sets
+  [cands n]
+  (let [fun (fn [cells]
+              (let [ns (set (map :value cells))
+                    combs (map set (clojure.math.combinatorics/combinations ns n))
+                    pos-cells (map (fn [[pos cells]]
+                                     [pos (set (map :value cells))])
+                                   (group-by :pos cells))]
+                (loop [combs combs
+                       found []]
+                  (if (empty? combs)
+                    (->FinderResult [] found)
+                    (let [comb (first combs)
+                          pos-numbers (filter (fn [[pos values]]
+                                                (pos? (count (clojure.set/intersection (set values)
+                                                                                       (set comb)))))
+                                              pos-cells)]
+                      (if (= (count pos-numbers) n)
+                        (let [pair (set (map first pos-numbers))
+                              others (filter (fn [^Cell cell]
+                                               (and (contains? pair (:pos cell))
+                                                    (not (contains? comb (:value cell)))))
+                                             cells)]
+                          (if (empty? others)
+                            (recur (rest combs) found)
+                            (recur (rest combs) (concat found others))))
+                        (recur (rest combs) found)))))))]
+    (finder fun cands)))
+
+(defn find-hidden-pairs
+  [cands]
+  (find-hidden-sets cands 2))
+
+(defn find-hidden-triples
+  [cands]
+  (find-hidden-sets cands 3))
+
+(defn find-hidden-quads
+  [cands]
+  (find-hidden-sets cands 4))
+
 (defn find-boxline-reductions
   [cands]
   (let [fun (fn [cells]
@@ -338,7 +379,10 @@
                  find-singles
                  find-naked-pairs
                  find-naked-triples
+                 find-hidden-pairs
+                 find-hidden-triples
                  find-naked-quads
+                 find-hidden-quads
                  find-boxline-reductions]]
     (loop [grid grid
            candidates candidates

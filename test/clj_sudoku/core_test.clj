@@ -17,3 +17,11 @@
           [ngrid ncandidates] (run-solver grid candidates)
           left (count ncandidates)]
       (is (= left 67)))))
+
+(deftest solve-grid-hidden-triple
+  (testing "solve grid with hidden triple"
+    (let [grids "300000000970010000600583000200000900500621003008000005000435002000090056000000001"
+          [grid candidates] (init-solver grids)
+          [ngrid ncandidates] (run-solver grid candidates)
+          left (count ncandidates)]
+      (is (= left 0)))))
