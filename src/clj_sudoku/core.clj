@@ -366,6 +366,37 @@
                         (recur (rest box-line-cells) (concat found nfound))))))))]
     (finder fun cands :noboxes true)))
 
+(defn find-pointing-pairs
+  [cands]
+    (loop [ns (range 1 10)
+           eliminated []]
+      (if (empty? ns)
+        (->FinderResult [] [])
+        (let [box (first ns)
+              cells (get-cells-box-n box cands)
+              numbers (distinct (map :value cells))
+              in-same-set (fn [pred ^Cell cells]
+                            (every? #(pred (:pos (first cells)) (:pos %1)) (rest cells)))
+              pairs-or-triples (filter (fn [[_ ncells]]
+                                         (and (or (= 2 (count ncells))
+                                                  (= 3 (count ncells)))
+                                              (or (in-same-set in-same-row ncells)
+                                                  (in-same-set in-same-column ncells))))
+                                       (map (fn [n]
+                                              [n (filter (fn [^Cell cell]
+                                                           (= n (:value cell)))
+                                                         cells)])
+                                            numbers))
+              get-others (fn [i cells]
+                           (cond
+                             (in-same-set in-same-row cells)
+                             (get-cells-row i cells)
+                             (in-same-set in-same-column cells)
+                             (get-cells-column i cells)
+                             :else []))]
+          ;; (println "pointing pairs" pairs-or-triples)
+          (recur (rest ns) [])))))
+
 (defn init-solver
   [^String str]
   (let [grid (str-to-grid str)
@@ -383,6 +414,7 @@
                  find-hidden-triples
                  find-naked-quads
                  find-hidden-quads
+                 find-pointing-pairs
                  find-boxline-reductions]]
     (loop [grid grid
            candidates candidates

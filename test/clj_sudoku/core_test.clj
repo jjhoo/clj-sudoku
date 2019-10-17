@@ -25,3 +25,11 @@
           [ngrid ncandidates] (run-solver grid candidates)
           left (count ncandidates)]
       (is (= left 0)))))
+
+(deftest solve-grid-pointing-pairs
+  (testing "solve grid with pointing pairs"
+    (let [grids "000000000904607000076804100309701080008000300050308702007502610000403208000000000"
+          [grid candidates] (init-solver grids)
+          [ngrid ncandidates] (run-solver grid candidates)
+          left (count ncandidates)]
+      (is (= left 0)))))
