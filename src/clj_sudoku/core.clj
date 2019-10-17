@@ -183,25 +183,25 @@
          (inc (rem (dec box) 3))))
 
 (defn get-cells-box-n
-  [cells ^Byte box]
+  [^Byte box cells]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-box (:pos cell) (number-to-box box)))) cells))
 
 (defn get-cells-box
-  [cells ^Box box]
+  [^Box box cells]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-box (:pos cell) box))) cells))
 
 (defn get-cells-column
-  [cells ^Byte column]
+  [^Byte column cells]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-column (:pos cell) column))) cells))
 
 (defn get-cells-row
-  [cells ^Byte row]
+  [^Byte row cells]
   (filter (fn [^Cell cell]
             (and (not= (:value cell) 0)
                  (in-row (:pos cell) row))) cells))
@@ -224,7 +224,7 @@
     (if (empty? seq)
       (->FinderResult (distinct solved) (distinct eliminated))
       (let [[i fun] (first seq)
-            cells (fun cands i)]
+            cells (fun i cands)]
         (if
          (empty? cells)
           (recur (rest seq) solved eliminated)
@@ -356,7 +356,7 @@
                           same-box? (partial (fn [^Pos pos1 ^Pos pos2]
                                                (.in-same-box pos1 pos2))
                                              pos)
-                          box-cells-n (filter #(= n (:value %1)) (get-cells-box cands (:box pos)))
+                          box-cells-n (filter #(= n (:value %1)) (get-cells-box (:box pos) cands))
                           all (set (map :pos box-cells-n))
                           exclude (set (map :pos cells))
                           diff (clojure.set/difference all exclude)
