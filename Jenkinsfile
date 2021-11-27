@@ -12,7 +12,7 @@ node {
             }
             stage('Coverage') {
                sh 'lein cloverage --codecov'
-               sh './scripts/codecov.sh -t $COVERAGE_TOKEN'
+               sh './scripts/codecov.sh -t $COVERAGE_TOKEN -K'
             }
         }
     }
