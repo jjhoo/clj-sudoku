@@ -1,8 +1,8 @@
 node {
     checkout scm
-    def customImage = docker.build("leiningen-image:${env.BUILD_ID}")
+    def customImage = docker.build("leiningen-image:${env.BUILD_ID}", "-f .jenkins/docker/Dockerfile .jenkins/docker")
 
-    withCredentials([string(credentialsId: 'COVERAGE_TOKEN', variable: 'COVERAGE_TOKEN')]) {
+    withCredentials([string(credentialsId: 'coverage-token-for-clj-sudoku', variable: 'COVERAGE_TOKEN')]) {
         customImage.inside('-v $HOME/.m2:/home/jenkins/.m2') {
             stage('Deps') {
                sh 'lein deps'
