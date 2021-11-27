@@ -1,5 +1,8 @@
 node {
-    docker.image('clojure:openjdk-11-lein-2.9.8-slim-bullseye').inside('-v $HOME/.lein:/root/.lein') {
+    checkout scm
+    def customImage = docker.build("leiningen-image:${env.BUILD_ID}")
+
+    customImage.inside('-v $HOME/.lein:/home/jenkins/.lein') {
         stage('Test') {
             sh 'ls -la ~/'
             sh 'id'
