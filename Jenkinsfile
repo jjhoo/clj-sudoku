@@ -4,8 +4,6 @@ node {
 
     customImage.inside('-v $HOME/.lein:/home/jenkins/.lein') {
         stage('Test') {
-            sh 'ls -la ~/'
-            sh 'id'
             sh 'lein cloverage --codecov'
         }
     }
