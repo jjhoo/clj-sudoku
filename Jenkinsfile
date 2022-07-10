@@ -8,6 +8,7 @@ node {
     withCredentials([string(credentialsId: 'coverage-token', variable: 'COVERAGE_TOKEN')]) {
         cache(maxCacheSize: 250, defaultBranch: 'master', caches: [
             [$class: 'ArbitraryFileCache', path: "${env.WORKSPACE_TMP}/m2", cacheValidityDecidingFile: 'project.clj', compressionMethod: 'TARGZ']
+        ]) {
             customImage.inside("-v ${env.WORKSPACE_TMP}/m2:/home/jenkins/.m2") {
                 stage('Deps') {
                    sh 'lein deps'
